@@ -21,8 +21,8 @@ bool ATMController::Process(IBankAPI* bank, IUserInterface* user) {
 		return false; // blocked account
 	}
 
-	int account = SelectAccount(bank, user, card_number);
-	if (account == kUnidentified) {
+	string account = SelectAccount(bank, user, card_number);
+	if (account.empty()) {
 		Initialize();
 		return false;
 	}
@@ -68,12 +68,12 @@ bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const str
 	return false;
 }
 
-int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const string card_number) {
-	int account = kUnidentified;
+string ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const string card_number) {
+	string account = "";
 	if (!is_identified_ || !is_valid_cardnumber_)
 		return account;
 
-	vector<int> accounts = bank->GetAccounts(card_number);
+	vector<string> accounts = bank->GetAccounts(card_number);
 	
 	if (accounts.size() == 1) {
 		account = accounts[0];
@@ -85,7 +85,7 @@ int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const str
 	return account;
 }
 
-int ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, const int account) {
+int ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, const string account) {
 	if (!is_identified_ || !is_valid_cardnumber_)
 		return kUnidentified;
 
@@ -115,7 +115,7 @@ int ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, const int acc
 }
 
 
-int ATMController::DoWithDraw(IBankAPI* bank, IUserInterface* user, const int account) {
+int ATMController::DoWithDraw(IBankAPI* bank, IUserInterface* user, const string account) {
 	if (!is_identified_)
 		return kUnidentified;
 

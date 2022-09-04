@@ -18,11 +18,11 @@ public:
 	bool Process(IBankAPI* bank, IUserInterface* user);
 	string ReadInsertedCard(IBankAPI* bank, IUserInterface* user);
 	bool IdentifyUser(IBankAPI* bank, IUserInterface* user, string card_number);
-	int SelectAccount(IBankAPI* bank, IUserInterface* user, string card_number);
-	int DoBankJob(IBankAPI* bank, IUserInterface* user, int account);
+	string SelectAccount(IBankAPI* bank, IUserInterface* user, string card_number);
+	int DoBankJob(IBankAPI* bank, IUserInterface* user, string account);
 
 private:
-	int DoWithDraw(IBankAPI* bank, IUserInterface* user, int account);
+	int DoWithDraw(IBankAPI* bank, IUserInterface* user, string account);
 	bool is_identified_;
 	bool is_valid_cardnumber_;
 
