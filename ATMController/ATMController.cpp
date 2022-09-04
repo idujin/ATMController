@@ -6,24 +6,31 @@ ATMController::ATMController(){
 
 void ATMController::Initialize() {
 	is_identified_ = false;
-	account_ = -1;
+	is_valid_cardnumber_ = false;
 }
 
 bool ATMController::Process(IBankAPI* bank, IUserInterface* user) {
 	const int card_number = ReadInsertedCard(bank, user);
-	if (card_number < 0) return false; // invalid cardnumber. request the cardnumber again.
+	if (card_number == kInvalidCardNumber) {
+		return false; // invalid cardnumber. request the cardnumber again.
+	} else {
+		is_valid_cardnumber_ = true;
+	}
 
-	is_identified_ = IdentifyUser(bank, user, card_number);
-	if (!is_identified_) {
+	if (!IdentifyUser(bank, user, card_number)) {
 		return false; // blocked account
 	}
 
-	account_ = SelectAccount(bank, user, card_number);
-	if (account_ < 0) {
+	int account = SelectAccount(bank, user, card_number);
+	if (account == kUnidentified) {
+		Initialize();
 		return false;
 	}
 
-	DoBankJob(bank, user, account_);
+	if (DoBankJob(bank, user, account) != kNoError) {
+		Initialize();
+		return false;
+	}
 	
 	Initialize();
 
@@ -35,17 +42,23 @@ bool ATMController::Process(IBankAPI* bank, IUserInterface* user) {
 int ATMController::ReadInsertedCard(IBankAPI* bank, IUserInterface* user) {
 	const int card_number = user->GetCardNumber();
 	if (!bank->IsValidCardNumber(card_number)) // invalid cardnumber. request the cardnumber again.
-		return -1;
+		return kInvalidCardNumber;
 
 	return card_number;
 }
 
 bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const int card_number) {
+	if (!is_valid_cardnumber_) {
+		if (!bank->IsValidCardNumber(card_number))
+			return false;
+	}
+
 	int invalid_try_num = bank->GetCurrentInvalidTry(card_number);
 	while (invalid_try_num <= kTryLimit) {
-		if (bank->IsValidPIN(user->GetPIN())) {
-			return true; // identified user
-			break;
+		if (bank->IsValidPIN(user->GetPIN())) { 
+			bank->UpdateInvaidTry(card_number, 0);// invalid try number reset
+			is_identified_ = true; // identified user
+			return true; 
 		}
 		else {
 			invalid_try_num++;
@@ -56,8 +69,12 @@ bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const int
 }
 
 int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const int card_number) {
+	int account = kUnidentified;
+	if (!is_identified_ || !is_valid_cardnumber_)
+		return account;
+
 	vector<int> accounts = bank->GetAccounts(card_number);
-	int account = -1;
+	
 	if (accounts.size() == 1) {
 		account = accounts[0];
 	} else if (accounts.size() > 1) {
@@ -68,34 +85,38 @@ int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const int
 	return account;
 }
 
-void ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, int account) {
-	ProcType curr_job;
-	do {
-		curr_job = user->SelectProcType();
-		switch (curr_job) {
-		case ProcType::kBalance:
-			int balance = bank->GetBalance(account);
-			user->ShowBalance(balance);
-			break;
-		case ProcType::kDeposit:
-			int deposit = user->GetDepositAmount();
-			bank->UpdateBalance(account, bank->GetBalance(account) + deposit);
-			break;
-		case ProcType::kWithDraw:
-			DoWithDraw(bank, user, account); // error check
-			break;
-		case ProcType::kExit:
-			break;
-		default:
-			break;
-		}
-	} while (curr_job != ProcType::kExit);
+int ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, const int account) {
+	if (!is_identified_ || !is_valid_cardnumber_)
+		return kUnidentified;
 
-	return;
+	int result = kNoError;
+
+	ProcType curr_job;
+	curr_job = user->SelectProcType();
+	switch (curr_job) {
+	case ProcType::kBalance:
+		int balance = bank->GetBalance(account);
+		user->ShowBalance(balance);
+		break;
+	case ProcType::kDeposit:
+		int deposit = user->GetDepositAmount();
+		bank->UpdateBalance(account, bank->GetBalance(account) + deposit);
+		break;
+	case ProcType::kWithDraw:
+		result = DoWithDraw(bank, user, account);
+		break;
+	case ProcType::kExit:
+	default:
+		break;
+	}
+	return result;
 }
 
 
-bool ATMController::DoWithDraw(IBankAPI* bank, IUserInterface* user, const int account) {
+int ATMController::DoWithDraw(IBankAPI* bank, IUserInterface* user, const int account) {
+	if (!is_identified_)
+		return kUnidentified;
+
 	int balance;
 	int get_amount;
 	do {
@@ -105,12 +126,12 @@ bool ATMController::DoWithDraw(IBankAPI* bank, IUserInterface* user, const int a
 		
 	} while (get_amount > balance);// invalid request. withdrawal amount should be less than current balance
 
-	if (user->RequestWithDraw(get_amount)) {
-		bank->UpdateBalance(account_, balance - get_amount);
+	if (user->WithDraw(get_amount)) {
+		bank->UpdateBalance(account, balance - get_amount);
 	}
 	else {
-		return false; // faied for some reason? 
+		return kError; // faied for some reason? 
 	}
 
-	return true;
+	return kNoError;
 }
