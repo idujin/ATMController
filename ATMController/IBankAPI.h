@@ -7,7 +7,7 @@ class IBankAPI {
 public:
 	virtual ~IBankAPI() = 0;
 	virtual bool IsValidCardNumber(string card_number) = 0;
-	virtual bool IsValidPIN(int pin_number) = 0;
+	virtual bool IsValidPIN(string pin_number, string card_number) = 0;
 	virtual vector<int> GetAccounts(string card_number) = 0;
 	virtual int GetBalance(int account) = 0;
 	virtual void UpdateBalance(int account, int balance) = 0;

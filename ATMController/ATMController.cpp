@@ -55,7 +55,7 @@ bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const str
 
 	int invalid_try_num = bank->GetCurrentInvalidTry(card_number);
 	while (invalid_try_num <= kTryLimit) {
-		if (bank->IsValidPIN(user->GetPIN())) { 
+		if (bank->IsValidPIN(user->GetPIN(), card_number)) {
 			bank->UpdateInvaidTry(card_number, 0);// invalid try number reset
 			is_identified_ = true; // identified user
 			return true; 

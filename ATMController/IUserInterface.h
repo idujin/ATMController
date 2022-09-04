@@ -9,7 +9,7 @@ class IUserInterface {
 public:
 	virtual ~IUserInterface() = 0;
 	virtual string GetCardNumber() = 0;
-	virtual int GetPIN() = 0;
+	virtual string GetPIN() = 0;
 	virtual int SelectAccount(vector<int> accounts) = 0;
 	virtual ProcType SelectProcType() = 0;
 	virtual void ShowBalance(int balance) = 0;
