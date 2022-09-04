@@ -16,9 +16,9 @@ public:
 	ATMController();
 	void Initialize();
 	bool Process(IBankAPI* bank, IUserInterface* user);
-	int ReadInsertedCard(IBankAPI* bank, IUserInterface* user);
-	bool IdentifyUser(IBankAPI* bank, IUserInterface* user, int card_number);
-	int SelectAccount(IBankAPI* bank, IUserInterface* user, int card_number);
+	string ReadInsertedCard(IBankAPI* bank, IUserInterface* user);
+	bool IdentifyUser(IBankAPI* bank, IUserInterface* user, string card_number);
+	int SelectAccount(IBankAPI* bank, IUserInterface* user, string card_number);
 	int DoBankJob(IBankAPI* bank, IUserInterface* user, int account);
 
 private:

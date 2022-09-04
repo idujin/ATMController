@@ -10,8 +10,8 @@ void ATMController::Initialize() {
 }
 
 bool ATMController::Process(IBankAPI* bank, IUserInterface* user) {
-	const int card_number = ReadInsertedCard(bank, user);
-	if (card_number == kInvalidCardNumber) {
+	const string card_number = ReadInsertedCard(bank, user);
+	if (card_number.empty()) {
 		return false; // invalid cardnumber. request the cardnumber again.
 	} else {
 		is_valid_cardnumber_ = true;
@@ -39,15 +39,15 @@ bool ATMController::Process(IBankAPI* bank, IUserInterface* user) {
 
 }
 
-int ATMController::ReadInsertedCard(IBankAPI* bank, IUserInterface* user) {
-	const int card_number = user->GetCardNumber();
+string ATMController::ReadInsertedCard(IBankAPI* bank, IUserInterface* user) {
+	const string card_number = user->GetCardNumber();
 	if (!bank->IsValidCardNumber(card_number)) // invalid cardnumber. request the cardnumber again.
-		return kInvalidCardNumber;
+		return "";
 
 	return card_number;
 }
 
-bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const int card_number) {
+bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const string card_number) {
 	if (!is_valid_cardnumber_) {
 		if (!bank->IsValidCardNumber(card_number))
 			return false;
@@ -68,7 +68,7 @@ bool ATMController::IdentifyUser(IBankAPI* bank, IUserInterface* user, const int
 	return false;
 }
 
-int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const int card_number) {
+int ATMController::SelectAccount(IBankAPI* bank, IUserInterface* user, const string card_number) {
 	int account = kUnidentified;
 	if (!is_identified_ || !is_valid_cardnumber_)
 		return account;
@@ -94,14 +94,16 @@ int ATMController::DoBankJob(IBankAPI* bank, IUserInterface* user, const int acc
 	ProcType curr_job;
 	curr_job = user->SelectProcType();
 	switch (curr_job) {
-	case ProcType::kBalance:
-		int balance = bank->GetBalance(account);
-		user->ShowBalance(balance);
-		break;
-	case ProcType::kDeposit:
+	case ProcType::kBalance: {
+			int balance = bank->GetBalance(account);
+			user->ShowBalance(balance);
+			break;
+		}
+	case ProcType::kDeposit: {
 		int deposit = user->GetDepositAmount();
 		bank->UpdateBalance(account, bank->GetBalance(account) + deposit);
 		break;
+	}
 	case ProcType::kWithDraw:
 		result = DoWithDraw(bank, user, account);
 		break;
